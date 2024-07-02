@@ -6,19 +6,20 @@ import os
 genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
 model_name = st.sidebar.radio('モデルを選択してください',
-                    ['gemini-1.5-pro-latest', 
-                    'gemini-1.5-flash-latest',
+                    ['gemini-1.5-flash-latest',
+                     'gemini-1.5-pro', 
                     'gemini-1.5-flash-001'])
 
 # 温度設定
 temperature = st.sidebar.slider('temperature', 
                   min_value=0.0, 
                   max_value=1.0, 
-                  value=0.5)
+                  value=0.9)
 # 生成設定
 generation_config = {
     'temperature': temperature
 }
+
 
 # モデルのインスタンス化
 def get_model(model_name, generation_config):
