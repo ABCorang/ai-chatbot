@@ -21,7 +21,8 @@ generation_config = {
 }
 
 # モデルのインスタンス化
-model = genai.GenerativeModel(model_name, generation_config=generation_config)
+def get_model(model_name, generation_config):
+    return genai.GenerativeModel(model_name, generation_config=generation_config)
 
 
 st.title('AIチャットアシスタント')
@@ -46,10 +47,11 @@ if user_input:
     st.session_state.chat_history.append({'role': 'user', 'content': user_input})
         
     with st.spinner("LLM is typing ..."):
-
+        # 関数からモデルを取得
+        model = get_model(model_name, generation_config)
         # AIレスポンスを生成
         ai_response = model.generate_content(user_input)
-    
+        
     # AIレスポンスを追加
     st.session_state.chat_history.append({'role': 'assistant', 'content': ai_response.text})
     # チャット履歴を更新
