@@ -7,6 +7,9 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+import datetime
+import base64
+
 
 model_name = st.sidebar.radio('モデルを選択してください',
                     ['gemini-1.5-flash-latest',
@@ -73,3 +76,23 @@ clear_btn = st.sidebar.button('チャット履歴をクリア')
 if clear_btn:
     st.session_state['langchain_messages'] = []
     st.rerun()
+
+def convert_chat_to_markdown(messages):
+    md_content = "# Chat History\n\n"
+    for message in messages:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        role = "Human" if message.type == "human" else "AI"
+        md_content += f"## {role} ({timestamp})\n\n{message.content}\n\n"
+    return md_content
+
+def get_markdown_download_link(md_content, filename="chat_history.md"):
+    b64 = base64.b64encode(md_content.encode()).decode()
+    href = f'<a href="data:file/markdown;base64,{b64}" download="{filename}">Download Markdown File</a>'
+    return href
+
+# Markdown出力ボタン
+export_md_btn = st.sidebar.button('チャット履歴をMarkdownに出力')
+if export_md_btn:
+    md_content = convert_chat_to_markdown(st.session_state['langchain_messages'])
+    md_download_link = get_markdown_download_link(md_content)
+    st.sidebar.markdown(md_download_link, unsafe_allow_html=True)
