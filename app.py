@@ -1,9 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
 import os
+from langchain_google_genai import GoogleGenerativeAI
 
-# Gemini APIの設定
-genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
 
 model_name = st.sidebar.radio('モデルを選択してください',
                     ['gemini-1.5-flash-latest',
@@ -14,54 +17,59 @@ model_name = st.sidebar.radio('モデルを選択してください',
 temperature = st.sidebar.slider('temperature', 
                   min_value=0.0, 
                   max_value=1.0, 
-                  value=0.9)
-# 生成設定
-generation_config = {
-    'temperature': temperature
-}
-
+                  value=1.0)
 
 # モデルのインスタンス化
-def get_model(model_name, generation_config):
-    return genai.GenerativeModel(model_name, generation_config=generation_config)
+api_key=os.environ['GOOGLE_API_KEY']
+llm = GoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
+
+# プロンプトテンプレートの設定
+tempate_prompt = ChatPromptTemplate.from_messages([
+    ('system', 'あなたは対話AIであり、ゆらゆることを詳細に解説でき、人間の質問を理解するため次の文脈に基づいて回答してください'),
+    MessagesPlaceholder(variable_name='conversation_history'),
+    ('human', '{input}')
+])
+
+# チェイン作成
+chain = tempate_prompt | llm
+
+strealimit_history = StreamlitChatMessageHistory()
+
+chat_chain_with_history = RunnableWithMessageHistory(
+    chain,
+    lambda session_id: strealimit_history,
+    input_messages_key='input',
+    history_messages_key='conversation_history',
+)
 
 
-st.title('AIチャットアシスタント')
+st.title('AIチャット')
 
 # チャット履歴の初期化
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-
-
-
+# if 'langchain_messages' not in st.session_state:
+#     st.session_state.langchain_messages = []
 
 # チャット履歴の表示
-for message in st.session_state.chat_history:
-    with st.chat_message(message['role']):
-        st.markdown(message['content'])
+for message in st.session_state['langchain_messages']:
+    if message.type == 'human':
+        role = 'human'
+    else:
+        role = 'AI'
+    
+    with st.chat_message(role):
+        st.markdown(message.content)
 
 user_input = st.chat_input('メッセージを入力してください:')
 
 # 送信ボタン
-if user_input:
-    # ユーザーメッセージを追加
-    st.session_state.chat_history.append({'role': 'user', 'content': user_input})
-        
-    with st.spinner('LLM is typing ...'):
-        # 関数からモデルを取得
-        model = get_model(model_name, generation_config)
+if user_input:     
+    with st.spinner('AI is typing ...'):
         # AIレスポンスを生成
-        ai_response = model.generate_content(user_input)
-
-    # AIレスポンスを追加
-    st.session_state.chat_history.append({'role': 'assistant', 'content': ai_response.text})
-    # チャット履歴を更新
-    st.rerun()
+        ai_response = chat_chain_with_history.stream({'input': user_input}, config={'configurable':{'session_id': "any"}})
+        st.write_stream(ai_response)
 
 # チャット履歴クリアボタン
 clear_btn = st.sidebar.button('チャット履歴をクリア')
 if clear_btn:
-    st.session_state.chat_history = []
+    st.session_state['langchain_messages'] = []
     st.rerun()
-
-

@@ -1,2 +1,6 @@
 google-generativeai
 streamlit
+langchain
+langchain_google_genai
+langchain_community
+langchain_core
