@@ -13,7 +13,7 @@ import base64
 
 model_name = st.sidebar.radio('モデルを選択してください',
                     ['gemini-1.5-flash-latest',
-                     'gemini-1.5-pro', 
+                     'gemini-1.5-pro-latest', 
                     'gemini-1.5-flash-001'])
 
 # 温度設定
@@ -48,10 +48,6 @@ chat_chain_with_history = RunnableWithMessageHistory(
 
 st.title('AIチャット')
 
-# チャット履歴の初期化
-# if 'langchain_messages' not in st.session_state:
-#     st.session_state.langchain_messages = []
-
 # チャット履歴の表示
 for message in st.session_state['langchain_messages']:
     if message.type == 'human':
@@ -68,7 +64,7 @@ user_input = st.chat_input('メッセージを入力してください:')
 if user_input:     
     with st.spinner('AI is typing ...'):
         # AIレスポンスを生成
-        ai_response = chat_chain_with_history.stream({'input': user_input}, config={'configurable':{'session_id': "any"}})
+        ai_response = chat_chain_with_history.stream({'input': user_input}, config={'configurable':{'session_id': 'any'}})
         st.write_stream(ai_response)
 
 # チャット履歴クリアボタン
@@ -78,16 +74,17 @@ if clear_btn:
     st.rerun()
 
 def convert_chat_to_markdown(messages):
-    md_content = "# Chat History\n\n"
+    md_content = '# Chat History\n\n'
     for message in messages:
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        role = "Human" if message.type == "human" else "AI"
-        md_content += f"## {role} ({timestamp})\n\n{message.content}\n\n"
+        role = 'Human' if message.type == 'human' else model_name
+        md_content += f'## {role}\n\n{message.content}\n\n'
+
     return md_content
 
-def get_markdown_download_link(md_content, filename="chat_history.md"):
+def get_markdown_download_link(md_content, filename='chat_history.md'):
+    filename = datetime.datetime.now().strftime('%Y-%m-%d:%H:%M:%S')
     b64 = base64.b64encode(md_content.encode()).decode()
-    href = f'<a href="data:file/markdown;base64,{b64}" download="{filename}">Download Markdown File</a>'
+    href = f'<a href="data:file/markdown;base64,{b64}" download="{filename}.md">ダウンロード mdファイル</a>'
     return href
 
 # Markdown出力ボタン
